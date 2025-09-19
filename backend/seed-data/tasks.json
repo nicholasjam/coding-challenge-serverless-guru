@@ -1,0 +1,46 @@
+[
+  {
+    "id": "task-1",
+    "userId": "default-user",
+    "title": "Complete project documentation",
+    "description": "Write comprehensive documentation for the task management application including API endpoints and deployment instructions",
+    "status": "in-progress",
+    "priority": "high",
+    "dueDate": "2025-09-25T10:00:00.000Z",
+    "createdAt": "2025-09-19T08:00:00.000Z",
+    "updatedAt": "2025-09-19T08:00:00.000Z"
+  },
+  {
+    "id": "task-2",
+    "userId": "default-user",
+    "title": "Set up CI/CD pipeline",
+    "description": "Configure GitHub Actions for automated deployment to AWS",
+    "status": "pending",
+    "priority": "medium",
+    "dueDate": "2025-09-22T15:30:00.000Z",
+    "createdAt": "2025-09-19T09:15:00.000Z",
+    "updatedAt": "2025-09-19T09:15:00.000Z"
+  },
+  {
+    "id": "task-3",
+    "userId": "default-user",
+    "title": "Design responsive UI components",
+    "description": "Create responsive React components using Material-UI for mobile, tablet, desktop, and large screen sizes",
+    "status": "completed",
+    "priority": "high",
+    "dueDate": null,
+    "createdAt": "2025-09-18T14:20:00.000Z",
+    "updatedAt": "2025-09-19T10:30:00.000Z"
+  },
+  {
+    "id": "task-4",
+    "userId": "default-user",
+    "title": "Implement data validation",
+    "description": "Add comprehensive input validation for all API endpoints using Joi",
+    "status": "completed",
+    "priority": "medium",
+    "dueDate": "2025-09-20T12:00:00.000Z",
+    "createdAt": "2025-09-18T16:45:00.000Z",
+    "updatedAt": "2025-09-19T11:15:00.000Z"
+  }
+]

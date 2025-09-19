@@ -1,0 +1,182 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-deploy.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/**"
+
+env:
+  NODE_VERSION: "18"
+  AWS_REGION: "us-east-1"
+
+jobs:
+  test:
+    name: Test Backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          npm ci
+
+      - name: Run linting
+        run: |
+          cd backend
+          npm run lint
+
+      - name: Run tests
+        run: |
+          cd backend
+          npm test
+
+  deploy-dev:
+    name: Deploy to Development
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment: development
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          npm ci
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install Serverless Framework
+        run: npm install -g serverless
+
+      - name: Deploy to Development
+        run: |
+          cd backend
+          serverless deploy --stage dev --verbose
+
+      - name: Get API Gateway URL
+        id: get-url
+        run: |
+          cd backend
+          API_URL=$(serverless info --stage dev --verbose | grep -E 'https://.*\.execute-api\.' | awk '{print $2}')
+          echo "api_url=$API_URL" >> $GITHUB_OUTPUT
+
+      - name: Test API Health
+        run: |
+          sleep 10
+          curl -f ${{ steps.get-url.outputs.api_url }}/tasks || exit 1
+
+      - name: Comment API URL on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🚀 **Development API deployed!**\n\nAPI URL: ${{ steps.get-url.outputs.api_url }}\n\nEndpoints:\n- GET /tasks\n- POST /tasks\n- GET /tasks/{id}\n- PUT /tasks/{id}\n- DELETE /tasks/{id}'
+            })
+
+  deploy-prod:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          npm ci
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install Serverless Framework
+        run: npm install -g serverless
+
+      - name: Deploy to Production
+        run: |
+          cd backend
+          serverless deploy --stage prod --verbose
+
+      - name: Get API Gateway URL
+        id: get-url
+        run: |
+          cd backend
+          API_URL=$(serverless info --stage prod --verbose | grep -E 'https://.*\.execute-api\.' | awk '{print $2}')
+          echo "api_url=$API_URL" >> $GITHUB_OUTPUT
+
+      - name: Test API Health
+        run: |
+          sleep 15
+          curl -f ${{ steps.get-url.outputs.api_url }}/tasks || exit 1
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: backend-v${{ github.run_number }}
+          release_name: Backend Release v${{ github.run_number }}
+          body: |
+            🚀 **Backend deployed to production!**
+
+            **API URL**: ${{ steps.get-url.outputs.api_url }}
+
+            **Endpoints**:
+            - GET /tasks - List all tasks
+            - POST /tasks - Create new task
+            - GET /tasks/{id} - Get specific task
+            - PUT /tasks/{id} - Update task
+            - DELETE /tasks/{id} - Delete task
+
+            **Changes**: ${{ github.event.head_commit.message }}
+          draft: false
+          prerelease: false
