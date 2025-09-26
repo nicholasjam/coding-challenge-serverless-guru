@@ -5,7 +5,7 @@ class DynamoDBUtil {
     // Configuration constants
     this.DEFAULT_REGION = "us-east-1"
     this.OFFLINE_ENDPOINT = "http://localhost:8000"
-    
+
     // Initialize DynamoDB client with environment-specific config
     this.dynamodb = this.#createClient()
     this.tableName = process.env.TASKS_TABLE
@@ -16,7 +16,9 @@ class DynamoDBUtil {
    */
   #createClient() {
     const config = {
-      region: process.env.IS_OFFLINE ? "localhost" : (process.env.REGION || this.DEFAULT_REGION)
+      region: process.env.IS_OFFLINE
+        ? "localhost"
+        : process.env.REGION || this.DEFAULT_REGION,
     }
 
     if (process.env.IS_OFFLINE) {
