@@ -2,18 +2,28 @@ const AWS = require("aws-sdk")
 
 class DynamoDBUtil {
   constructor() {
-    if (process.env.IS_OFFLINE) {
-      this.dynamodb = new AWS.DynamoDB.DocumentClient({
-        region: "localhost",
-        endpoint: "http://localhost:8000",
-      })
-    } else {
-      this.dynamodb = new AWS.DynamoDB.DocumentClient({
-        region: process.env.REGION || "us-east-1",
-      })
+    // Configuration constants
+    this.DEFAULT_REGION = "us-east-1"
+    this.OFFLINE_ENDPOINT = "http://localhost:8000"
+    
+    // Initialize DynamoDB client with environment-specific config
+    this.dynamodb = this.#createClient()
+    this.tableName = process.env.TASKS_TABLE
+  }
+
+  /**
+   * Create DynamoDB client based on environment
+   */
+  #createClient() {
+    const config = {
+      region: process.env.IS_OFFLINE ? "localhost" : (process.env.REGION || this.DEFAULT_REGION)
     }
 
-    this.tableName = process.env.TASKS_TABLE
+    if (process.env.IS_OFFLINE) {
+      config.endpoint = this.OFFLINE_ENDPOINT
+    }
+
+    return new AWS.DynamoDB.DocumentClient(config)
   }
 
   async create(item) {

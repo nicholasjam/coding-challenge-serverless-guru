@@ -1,42 +1,80 @@
 import api from './api';
 
 /**
- * Task service for API operations
+ * Task service for API operations using modern patterns
  */
 class TaskService {
+  // Base API path
+  static BASE_PATH = '/tasks';
+
+  /**
+   * Build query string from filters object
+   */
+  #buildQueryString = (filters) => {
+    const params = new URLSearchParams();
+    
+    // Use Object.entries for cleaner iteration
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params.append(key, value);
+      }
+    });
+    
+    return params.toString();
+  };
+
+  /**
+   * Generic error handler with better context
+   */
+  #handleError = (operation, error, id = null) => {
+    const context = id ? `${operation} for task ${id}` : operation;
+    console.error(`TaskService: ${context} failed:`, error);
+    throw error;
+  };
+
   /**
    * Get all tasks with optional filters
    */
   async getTasks(filters = {}) {
     try {
-      const params = new URLSearchParams();
+      const queryString = this.#buildQueryString(filters);
+      const url = queryString ? `${TaskService.BASE_PATH}?${queryString}` : TaskService.BASE_PATH;
       
-      // Add filters to query parameters
-      if (filters.status) params.append('status', filters.status);
-      if (filters.priority) params.append('priority', filters.priority);
-      if (filters.userId) params.append('userId', filters.userId);
-      
-      const queryString = params.toString();
-      const url = queryString ? `/tasks?${queryString}` : '/tasks';
-      
-      const response = await api.get(url);
-      return response.data.data;
+      const { data } = await api.get(url);
+      return data.data;
     } catch (error) {
-      console.error('Error fetching tasks:', error);
-      throw error;
+      this.#handleError('Fetching tasks', error);
     }
   }
+
+  /**
+   * Validate task ID
+   */
+  #validateId = (id, operation) => {
+    if (!id) {
+      throw new Error(`Task ID is required for ${operation}`);
+    }
+  };
+
+  /**
+   * Validate task data
+   */
+  #validateTaskData = (taskData) => {
+    if (!taskData?.title?.trim()) {
+      throw new Error('Task title is required');
+    }
+  };
 
   /**
    * Get a single task by ID
    */
   async getTask(id) {
     try {
-      const response = await api.get(`/tasks/${id}`);
-      return response.data.data;
+      this.#validateId(id, 'fetching');
+      const { data } = await api.get(`${TaskService.BASE_PATH}/${id}`);
+      return data.data;
     } catch (error) {
-      console.error(`Error fetching task ${id}:`, error);
-      throw error;
+      this.#handleError('Fetching task', error, id);
     }
   }
 
@@ -45,16 +83,11 @@ class TaskService {
    */
   async createTask(taskData) {
     try {
-      // Validate required fields
-      if (!taskData.title) {
-        throw new Error('Task title is required');
-      }
-
-      const response = await api.post('/tasks', taskData);
-      return response.data.data;
+      this.#validateTaskData(taskData);
+      const { data } = await api.post(TaskService.BASE_PATH, taskData);
+      return data.data;
     } catch (error) {
-      console.error('Error creating task:', error);
-      throw error;
+      this.#handleError('Creating task', error);
     }
   }
 
@@ -63,15 +96,11 @@ class TaskService {
    */
   async updateTask(id, updates) {
     try {
-      if (!id) {
-        throw new Error('Task ID is required for update');
-      }
-
-      const response = await api.put(`/tasks/${id}`, updates);
-      return response.data.data;
+      this.#validateId(id, 'updating');
+      const { data } = await api.put(`${TaskService.BASE_PATH}/${id}`, updates);
+      return data.data;
     } catch (error) {
-      console.error(`Error updating task ${id}:`, error);
-      throw error;
+      this.#handleError('Updating task', error, id);
     }
   }
 
@@ -80,15 +109,11 @@ class TaskService {
    */
   async deleteTask(id) {
     try {
-      if (!id) {
-        throw new Error('Task ID is required for deletion');
-      }
-
-      const response = await api.delete(`/tasks/${id}`);
-      return response.data.data;
+      this.#validateId(id, 'deletion');
+      const { data } = await api.delete(`${TaskService.BASE_PATH}/${id}`);
+      return data.data;
     } catch (error) {
-      console.error(`Error deleting task ${id}:`, error);
-      throw error;
+      this.#handleError('Deleting task', error, id);
     }
   }
 
