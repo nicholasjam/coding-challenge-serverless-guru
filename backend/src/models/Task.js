@@ -92,12 +92,13 @@ class Task {
       "dueDate",
     ]
 
-    allowedUpdates.forEach((field) => {
-      if (updates[field] !== undefined) {
-        this[field] = updates[field]
-      }
-    })
+    // Use object destructuring and filtering for cleaner code
+    const validUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([key]) => allowedUpdates.includes(key))
+    )
 
+    // Apply updates using object spread
+    Object.assign(this, validUpdates)
     this.updatedAt = new Date().toISOString()
   }
 }

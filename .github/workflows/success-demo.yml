@@ -9,7 +9,7 @@ jobs:
   test-and-validate:
     name: ✅ Tests & Validation
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -62,7 +62,7 @@ jobs:
     name: ✅ Infrastructure Validation
     runs-on: ubuntu-latest
     needs: test-and-validate
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -96,7 +96,7 @@ jobs:
     name: ✅ Deployment Simulation
     runs-on: ubuntu-latest
     needs: [test-and-validate, infrastructure-validation]
-    
+
     steps:
       - name: Simulate AWS deployment
         run: |
@@ -135,7 +135,7 @@ jobs:
     name: ✅ Quality Assurance
     runs-on: ubuntu-latest
     needs: test-and-validate
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -168,8 +168,14 @@ jobs:
   final-report:
     name: ✅ Final Success Report
     runs-on: ubuntu-latest
-    needs: [test-and-validate, infrastructure-validation, deployment-simulation, quality-assurance]
-    
+    needs:
+      [
+        test-and-validate,
+        infrastructure-validation,
+        deployment-simulation,
+        quality-assurance,
+      ]
+
     steps:
       - name: Generate final report
         run: |
